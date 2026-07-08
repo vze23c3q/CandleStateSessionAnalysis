@@ -47,6 +47,38 @@ SECTIONS = {
     "Logs": "logs",
 }
 
+# Enum converters, mirroring C# enums in CandleState. The JSON stores these
+# fields as integer ordinals; this maps them back to readable names.
+#
+# Key = (table_name, column_name) exactly as they appear after SECTIONS
+# renames the table. Value = list of names in ordinal order (index 0 = the
+# enum's first member, etc).
+#
+# To add another one, just add another entry here — nothing else in the
+# script needs to change.
+ENUM_COLUMNS = {
+    ("logs", "Category"): [
+        "Info", "Warning", "Error", "Trade", "Signal", "Debug",
+        "Critical", "Monitor", "Rule", "Json", "Alert",
+    ],
+    ("trade_signals", "CandleName"): [
+        "Undefined", "Doji", "BullElephant", "BearElephant", "ToppingTail",
+        "BottomingTail", "Bull180", "Bear180", "BullHammer", "BearHammer",
+        "BullColorChange", "BearColorChange", 
+    ],
+    ("trade_signals", "CandleColor"): ["White", "Green", "Red"
+    ],
+    ("trade_signals", "Signal"): ["Idle", "MarketOpen", "Buy", "Add", "Remove", 
+        "Sell", "Continue", "Gated", "Stopped", "SessionComplete"
+    ],
+    ("trade_signals", "MACDPhase"): ["RisingGreen", "FallingGreen", "FallingRed", "RisingRed"
+    ],
+    ("transactions", "Type"): ["BuyToOpen", "BuyToClose", "SellToOpen", "SellToClose"   
+    ],
+    ("price_levels", "Type"): ["PriorHighOfDay", "PriorLowOfDay", "PriorDayClose", "Intraday",   
+    ],
+}
+
 # The top-level fields that describe the session itself (not a list).
 SESSION_FIELDS = [
     "SessionStart", "SessionEnd", "TradingMode", "AccountName",
@@ -93,6 +125,17 @@ def parse_sessions(folder: Path):
                 row = dict(record)
                 row["SourceFile"] = filepath.name
                 row["SessionStart"] = data.get("SessionStart")
+
+                # Translate any enum-backed int columns to readable names.
+                # Falls back to the raw number if it's ever out of range,
+                # so a mismatched/stale mapping never breaks parsing.
+                for column, names in ENUM_COLUMNS.items():
+                    if column[0] != table_name or column[1] not in row:
+                        continue
+                    ordinal = row[column[1]]
+                    if isinstance(ordinal, int) and 0 <= ordinal < len(names):
+                        row[column[1]] = names[ordinal]
+
                 section_rows[table_name].append(row)
 
         print(f"Parsed {filepath.name}: "
