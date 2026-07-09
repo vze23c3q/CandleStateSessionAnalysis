@@ -22,7 +22,7 @@ Position's ID) and attached alongside the VWAP.
 
 USAGE
 -----
-    python analyze_sessions.py "C:\\path\\to\\output"
+    python analyze_sessions.py "C:\Git\CandleStateSessionAnalysis\data\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -73,7 +73,7 @@ def buys_vs_vwap(positions: pd.DataFrame, trade_signals: pd.DataFrame,
 
     cols = ["SourceFile", "Symbol", "ID", "IndexOpen", "Opened",
             "EntryPrice", "VWAP", "EntryVsVWAP", "AboveVWAP",
-            "RealizedGain", "NetGain"]
+            "RealizedGain"]
     return entry_bars[cols].sort_values(["SourceFile", "Opened"])
 
 

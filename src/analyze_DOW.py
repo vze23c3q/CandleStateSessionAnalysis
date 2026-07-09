@@ -22,7 +22,8 @@ sessions.csv supplies each day's date/weekday via SessionStart.
 
 USAGE
 -----
-    python analyze_DOW.py "C:\\path\\to\\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACD Target\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACD Trail\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -69,7 +70,7 @@ def daily_results(positions: pd.DataFrame, sessions: pd.DataFrame) -> pd.DataFra
 
     # Preserve every session day even if it had zero positions (DailyNet
     # would just be missing -> filled to 0 below).
-    daily = sessions[["SourceFile", "SessionStart"]].merge(daily, on="SourceFile", how="left")
+    daily = sessions[["SourceFile", "SessionStart", "TargetHit"]].merge(daily, on="SourceFile", how="left")
     daily["DailyNet"] = daily["DailyNet"].fillna(0)
 
     daily["Weekday"] = _parse_local_datetime(daily["SessionStart"]).dt.day_name()
@@ -92,8 +93,10 @@ def day_of_week_summary(daily: pd.DataFrame) -> pd.DataFrame:
         Net=("DailyNet", "sum"),
         Win=("DayWin", "sum"),
         Loss=("DayWin", lambda s: (~s).sum()),
+        TargetHit=("TargetHit", "sum"),
     )
     grouped["PctWin"] = grouped["Win"] / grouped["Count"]
+    grouped["PctTargetHit"] = grouped["TargetHit"] / grouped["Count"]
 
     # Reorder Mon-Fri regardless of which weekdays have data.
     grouped = grouped.reindex([d for d in WEEKDAY_ORDER if d in grouped.index])
@@ -138,6 +141,7 @@ def format_for_display(dow: pd.DataFrame) -> pd.DataFrame:
         lambda v: f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
     )
     display["PctWin"] = display["PctWin"].map(lambda v: f"{v:.0%}")
+    display["PctTargetHit"] = display["PctTargetHit"].map(lambda v: f"{v:.0%}")
     return display
 
 

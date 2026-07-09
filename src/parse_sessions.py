@@ -8,7 +8,8 @@ Excel, load them into another script, or query them with pandas/SQL.
 
 USAGE
 -----
-    python parse_sessions.py "C:\path\to\session\folder"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACD Target"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACD Trail"
 
 If you don't pass a path, it defaults to the current folder.
 
@@ -82,7 +83,7 @@ ENUM_COLUMNS = {
 # The top-level fields that describe the session itself (not a list).
 SESSION_FIELDS = [
     "SessionStart", "SessionEnd", "TradingMode", "AccountName",
-    "TradingCapital", "MaxDayLoss", "DayTarget", "CashBalance", "DayGain",
+    "TradingCapital", "MaxDayLoss", "DayTarget", "CashBalance", "DayGain", "TargetHit",
 ]
 
 
