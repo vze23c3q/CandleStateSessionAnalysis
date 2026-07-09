@@ -9,6 +9,7 @@ Reproduces the weekly performance table:
     ...
 
 Longest Win Streak / Longest Loss Streak
+Current Streak
 
 IMPORTANT: this is a per-DAY summary, not a per-trade summary. Count is
 the number of trading days that fell on that weekday; Win/Loss classify
@@ -22,8 +23,8 @@ sessions.csv supplies each day's date/weekday via SessionStart.
 
 USAGE
 -----
-    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACD Target\output"
-    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACD Trail\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -128,6 +129,36 @@ def longest_streaks(daily: pd.DataFrame) -> dict:
     return {"LongestWinStreak": longest_win, "LongestLossStreak": longest_loss}
 
 
+def current_streak(daily: pd.DataFrame) -> dict:
+    """
+    Sorts trading days chronologically and reports the streak currently
+    in progress as of the most recent day: how many consecutive days,
+    counting backward from the latest one, share the same Win/Loss
+    direction. E.g. if the last 3 days were all net-positive, this
+    returns {"Type": "Win", "Length": 3} -- different from
+    LongestWinStreak, which reports the best historical run rather than
+    what's happening right now.
+    """
+    df = daily.copy()
+    df["SessionStart_dt"] = _parse_local_datetime(df["SessionStart"])
+    df = df.sort_values("SessionStart_dt")
+
+    if df.empty:
+        return {"Type": None, "Length": 0}
+
+    day_wins = df["DayWin"].tolist()
+    current_type_is_win = day_wins[-1]
+
+    length = 0
+    for day_win in reversed(day_wins):
+        if day_win == current_type_is_win:
+            length += 1
+        else:
+            break
+
+    return {"Type": "Win" if current_type_is_win else "Loss", "Length": length}
+
+
 def format_for_display(dow: pd.DataFrame) -> pd.DataFrame:
     """
     Returns a copy of the day-of-week table with Net formatted like C#'s
@@ -163,6 +194,11 @@ def main():
     streaks = longest_streaks(daily)
     print(f"\nLongest Win Streak:  {streaks['LongestWinStreak']}")
     print(f"Longest Loss Streak: {streaks['LongestLossStreak']}")
+
+    current = current_streak(daily)
+    if current["Type"] is not None:
+        print(f"Current Streak:      {current['Length']} {current['Type']}"
+              f"{'s' if current['Length'] != 1 else ''}")
 
 
 if __name__ == "__main__":
