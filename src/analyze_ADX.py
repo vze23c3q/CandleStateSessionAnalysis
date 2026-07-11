@@ -89,13 +89,13 @@ def bucket_summary(entries: pd.DataFrame, group_cols: list) -> pd.DataFrame:
     """
     grouped = entries.groupby(group_cols).agg(
         Count=("RealizedGain", "size"),
-        Wins=("RealizedGain", lambda s: (s > 0).sum()),
+        Wins=("RealizedGain", lambda s: (s >= 0).sum()),
         Net=("RealizedGain", "sum"),
     )
     grouped["WinRate"] = grouped["Wins"] / grouped["Count"]
 
-    avg_win = entries[entries["RealizedGain"] > 0].groupby(group_cols)["RealizedGain"].mean()
-    avg_loss = entries[entries["RealizedGain"] <= 0].groupby(group_cols)["RealizedGain"].mean().abs()
+    avg_win = entries[entries["RealizedGain"] >= 0].groupby(group_cols)["RealizedGain"].mean()
+    avg_loss = entries[entries["RealizedGain"] < 0].groupby(group_cols)["RealizedGain"].mean().abs()
     grouped["AvgWin"] = avg_win
     grouped["AvgLoss"] = avg_loss
     grouped[["AvgWin", "AvgLoss"]] = grouped[["AvgWin", "AvgLoss"]].fillna(0)

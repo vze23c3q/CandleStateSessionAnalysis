@@ -8,8 +8,8 @@ Excel, load them into another script, or query them with pandas/SQL.
 
 USAGE
 -----
-    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACD Target"
-    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACD Trail"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail"
 
 If you don't pass a path, it defaults to the current folder.
 
@@ -66,6 +66,8 @@ ENUM_COLUMNS = {
         "Undefined", "Doji", "BullElephant", "BearElephant", "ToppingTail",
         "BottomingTail", "Bull180", "Bear180", "BullHammer", "BearHammer",
         "BullColorChange", "BearColorChange", 
+    ],
+    ("trade_signals", "CandleLocation"): ["Plus3", "Plus2", "Plus1", "Neutral", "Minus1", "Minus2", "Minus3",
     ],
     ("trade_signals", "CandleColor"): ["White", "Green", "Red"
     ],
@@ -136,6 +138,41 @@ def parse_sessions(folder: Path):
                     ordinal = row[column[1]]
                     if isinstance(ordinal, int) and 0 <= ordinal < len(names):
                         row[column[1]] = names[ordinal]
+
+                # Position.AvgPrice gets nulled out once Quantity hits 0
+                # (position closed), so recompute it from BuyTransactions
+                # instead -- a quantity-weighted average across every buy
+                # (most positions have just one, but adds create more).
+                #
+                # Also compute ClosePrice here, from the nested
+                # SellActivity within each buy lot (FIFO fills against that
+                # lot) -- this is the RAW fill price, matching the
+                # Description string, as opposed to ClosePriceTrx (added
+                # below from Transactions.csv-equivalent data), which is
+                # back-derived from NetAmount/CommissionFee and can differ
+                # by a fraction of a cent. Both are quantity-weighted
+                # averages in case of multiple partial sells.
+                if table_name == "positions" and "BuyTransactions" in row:
+                    buys = row["BuyTransactions"] or []
+                    total_qty = sum(b.get("BuyQuantity", 0) for b in buys)
+                    total_cost = sum(
+                        b.get("BuyQuantity", 0) * b.get("Price", 0) for b in buys
+                    )
+                    row["AvgPrice"] = total_cost / total_qty if total_qty else None
+
+                    sell_qty_total = 0
+                    sell_cost_total = 0
+                    for b in buys:
+                        for s in (b.get("SellActivity") or []):
+                            qty = s.get("SellQty", 0)
+                            sell_qty_total += qty
+                            sell_cost_total += qty * s.get("Price", 0)
+                    row["ClosePrice"] = (
+                        sell_cost_total / sell_qty_total if sell_qty_total else None
+                    )
+
+                    del row["BuyTransactions"]  # nested list, not needed beyond this
+
 
                 section_rows[table_name].append(row)
 

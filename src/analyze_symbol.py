@@ -35,8 +35,8 @@ def symbol_summary(positions: pd.DataFrame) -> pd.DataFrame:
     grouped = positions.groupby("Symbol").agg(
         Count=("RealizedGain", "size"),
         Net=("RealizedGain", "sum"),
-        Win=("RealizedGain", lambda s: (s > 0).sum()),
-        Loss=("RealizedGain", lambda s: (s <= 0).sum()),
+        Win=("RealizedGain", lambda s: (s >= 0).sum()),
+        Loss=("RealizedGain", lambda s: (s < 0).sum()),
     )
     grouped["PctWin"] = grouped["Win"] / grouped["Count"]
     grouped = grouped.sort_values("Net", ascending=False)

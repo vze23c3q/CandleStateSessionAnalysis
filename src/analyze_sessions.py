@@ -22,7 +22,7 @@ Position's ID) and attached alongside the VWAP.
 
 USAGE
 -----
-    python analyze_sessions.py "C:\Git\CandleStateSessionAnalysis\data\output"
+    python analyze_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -89,7 +89,7 @@ def win_rate_by_vwap_side(buys: pd.DataFrame) -> pd.DataFrame:
     """
     grouped = buys.groupby("AboveVWAP").agg(
         Count=("RealizedGain", "size"),
-        Wins=("RealizedGain", lambda s: (s > 0).sum()),
+        Wins=("RealizedGain", lambda s: (s >= 0).sum()),
         AvgRealizedGain=("RealizedGain", "mean"),
         TotalRealizedGain=("RealizedGain", "sum"),
     )
@@ -99,8 +99,8 @@ def win_rate_by_vwap_side(buys: pd.DataFrame) -> pd.DataFrame:
     # Average loss size = mean absolute RealizedGain among losing trades only
     # (kept positive so it reads naturally next to AvgWin, and so the
     # expectancy formula below matches the standard textbook form).
-    avg_win = buys[buys["RealizedGain"] > 0].groupby("AboveVWAP")["RealizedGain"].mean()
-    avg_loss = buys[buys["RealizedGain"] <= 0].groupby("AboveVWAP")["RealizedGain"].mean().abs()
+    avg_win = buys[buys["RealizedGain"] >= 0].groupby("AboveVWAP")["RealizedGain"].mean()
+    avg_loss = buys[buys["RealizedGain"] < 0].groupby("AboveVWAP")["RealizedGain"].mean().abs()
     grouped["AvgWin"] = avg_win
     grouped["AvgLoss"] = avg_loss
     grouped[["AvgWin", "AvgLoss"]] = grouped[["AvgWin", "AvgLoss"]].fillna(0)
