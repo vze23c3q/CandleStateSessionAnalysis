@@ -167,9 +167,8 @@ def parse_sessions(folder: Path):
                             qty = s.get("SellQty", 0)
                             sell_qty_total += qty
                             sell_cost_total += qty * s.get("Price", 0)
-                    row["ClosePrice"] = (
-                        sell_cost_total / sell_qty_total if sell_qty_total else None
-                    )
+                    row["ClosePrice"] = (sell_cost_total / sell_qty_total if sell_qty_total else None)
+                    row["Quantity"] = (sell_qty_total)
 
                     del row["BuyTransactions"]  # nested list, not needed beyond this
 

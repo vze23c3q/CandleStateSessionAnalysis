@@ -25,8 +25,8 @@ give a misleading number.
 
 USAGE
 -----
-    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\MACD Target\output"
-    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\MACD Trail\output"
+    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
+    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -55,8 +55,16 @@ def daily_results(positions: pd.DataFrame, sessions: pd.DataFrame) -> pd.DataFra
     daily = positions.groupby("SourceFile", as_index=False)["RealizedGain"].sum()
     daily = daily.rename(columns={"RealizedGain": "DailyNet"})
 
-    daily = sessions[["SourceFile", "TargetHit"]].merge(daily, on="SourceFile", how="left")
+    daily = sessions[["SourceFile", "SessionStart", "TargetHit"]].merge(daily, on="SourceFile", how="left")
     daily["DailyNet"] = daily["DailyNet"].fillna(0)
+
+    daily["SessionStart"] = pd.to_datetime(daily["SessionStart"], utc=True)
+    daily = daily.sort_values("SessionStart").reset_index(drop=True)
+    
+    daily["CumulativeNet"] = daily["DailyNet"].cumsum()
+    daily["RunningPeak"] = daily["CumulativeNet"].cummax()
+    daily["Drawdown"] = daily["CumulativeNet"] - daily["RunningPeak"]
+
     return daily
 
 
@@ -92,15 +100,50 @@ def compute_stats(daily: pd.DataFrame, trading_capital: float) -> dict:
         annualized = (total / trading_capital) * (TRADING_DAYS_PER_YEAR / trading_days)
 
     target_hit_pct = daily["TargetHit"].sum() / trading_days if trading_days else float("nan")
+    win_pct = (daily["DailyNet"] >= 0).sum() / trading_days if trading_days else float("nan")
+    
+    winning_days = daily.loc[daily["DailyNet"] >= 0, "DailyNet"]
+    losing_days = daily.loc[daily["DailyNet"] < 0, "DailyNet"]
+    average_win = winning_days.mean() if len(winning_days) else float("nan")
+    average_loss = losing_days.mean() if len(losing_days) else float("nan")
+    
+    minCumulativeNet = daily["CumulativeNet"].min()  
+    maxDrawDown = daily["Drawdown"].min()  # most negative drawdown 
 
     return {
         "StdDev": std_dev,
         "Average": average,
+        "AverageWin": average_win,
+        "AverageLoss": average_loss,    
         "Annualized": annualized,
         "MaxLoss": max_loss,
+        "MinCumulativeNet": minCumulativeNet,
+        "MaxDrawDown": maxDrawDown,
         "Total": total,
         "TargetHitPct": target_hit_pct,
+        "WinPct": win_pct,
     }
+
+
+def monthly_results(daily: pd.DataFrame) -> pd.DataFrame:
+    """
+    Collapses `daily` (one row per trading day) down to one row per
+    calendar month: trading day count, total P&L, days that hit target,
+    and that month's worst single day.
+    """
+    monthly = daily.copy()
+    monthly["Month"] = monthly["SessionStart"].dt.to_period("M")
+
+    summary = monthly.groupby("Month").agg(
+        Days=("DailyNet", "count"),
+        MaxLoss=("DailyNet", "min"),
+        TargetHit=("TargetHit", "sum"),
+        Total=("DailyNet", "sum"),
+    ).reset_index()
+
+    summary["Month"] = summary["Month"].dt.strftime("%b")
+
+    return summary
 
 
 def format_for_display(stats: dict) -> pd.Series:
@@ -114,13 +157,39 @@ def format_for_display(stats: dict) -> pd.Series:
         return f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
 
     return pd.Series({
-        "StdDev": f"{stats['StdDev']:,.0f}",
-        "Average": fmt_dollars(stats["Average"]),
-        "Annualized": f"{stats['Annualized']:.0%}",
-        "Max Loss": fmt_dollars(stats["MaxLoss"]),
-        "Total": fmt_dollars(stats["Total"]),
-        "Target Hit %": f"{stats['TargetHitPct']:.0%}",
+        "Total P/L": fmt_dollars(stats["Total"]),
+        "Annualized Yield": f"{stats['Annualized']:.0%}",
+        "Breakeven-or-Better Days": f"{stats['WinPct']:.0%}",
+        "Target Hit Days": f"{stats['TargetHitPct']:.0%}",
+        "Daily Average": fmt_dollars(stats["Average"]),
+        "Average Win": fmt_dollars(stats["AverageWin"]),
+        "Average Loss": fmt_dollars(stats["AverageLoss"]),
+        "Max Day Loss": fmt_dollars(stats["MaxLoss"]),
+        "Min Running P/L": fmt_dollars(stats["MinCumulativeNet"]),
+        "Max Drawdown (peak to trough)": fmt_dollars(stats["MaxDrawDown"]),
+        "Volatility": f"{stats['StdDev']:,.0f}",
     })
+
+
+def format_for_monthly_display(monthly: pd.DataFrame) -> pd.DataFrame:
+    """
+    Formats the monthly summary for display: Total/MaxLoss as currency
+    (no decimals). Mirrors format_for_display -- the raw DataFrame keeps
+    full precision for anything downstream.
+    """
+    def fmt_dollars(v):
+        return f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
+
+    display = monthly.copy()
+    display["Total"] = display["Total"].apply(fmt_dollars)
+    display["MaxLoss"] = display["MaxLoss"].apply(fmt_dollars)
+    
+    display = display.rename(columns={
+        "Total": "Total P/L",
+        "TargetHit": "Target Hit Days",
+        "MaxLoss": "Max Loss",
+    })
+    return display
 
 
 def main():
@@ -129,12 +198,20 @@ def main():
 
     positions, sessions = load_positions_and_sessions(output_dir)
     daily = daily_results(positions, sessions)
+    
+    #out_path = output_dir / "daily_summary.csv"
+    #daily.to_csv(out_path)
+    
     trading_capital = get_trading_capital(sessions)
 
     stats = compute_stats(daily, trading_capital)
+    monthly = monthly_results(daily)
 
     print("--- Summary statistics ---")
     print(format_for_display(stats).to_string())
+
+    print("--- Monthly results ---")
+    print(format_for_monthly_display(monthly).to_string(index=False))
 
 
 if __name__ == "__main__":
