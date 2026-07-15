@@ -138,9 +138,9 @@ def monthly_results(daily: pd.DataFrame) -> pd.DataFrame:
         Days=("DailyNet", "count"),
         MaxLoss=("DailyNet", "min"),
         TargetHit=("TargetHit", "sum"),
-        Total=("DailyNet", "sum"),
+        Net=("DailyNet", "sum"),
     ).reset_index()
-
+    summary["TargetHitPct"] = summary["TargetHit"] / summary["Days"]
     summary["Month"] = summary["Month"].dt.strftime("%b")
 
     return summary
@@ -181,15 +181,12 @@ def format_for_monthly_display(monthly: pd.DataFrame) -> pd.DataFrame:
         return f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
 
     display = monthly.copy()
-    display["Total"] = display["Total"].apply(fmt_dollars)
+    display["Net"] = display["Net"].apply(fmt_dollars)
     display["MaxLoss"] = display["MaxLoss"].apply(fmt_dollars)
+    display["TargetHitPct"] = display["TargetHitPct"].map(lambda v: f"{v:.0%}")
     
-    display = display.rename(columns={
-        "Total": "Total P/L",
-        "TargetHit": "Target Hit Days",
-        "MaxLoss": "Max Loss",
-    })
-    return display
+    column_order = ["Month", "Days", "TargetHit", "TargetHitPct", "MaxLoss", "Net"]
+    return display[column_order ]
 
 
 def main():

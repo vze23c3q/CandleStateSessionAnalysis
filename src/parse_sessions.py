@@ -80,11 +80,13 @@ ENUM_COLUMNS = {
     ],
     ("price_levels", "Type"): ["PriorHighOfDay", "PriorLowOfDay", "PriorDayClose", "Intraday",   
     ],
+    ("session_rows", "CandleMode"): ["Tape", "Streamer",
+    ],
 }
 
 # The top-level fields that describe the session itself (not a list).
 SESSION_FIELDS = [
-    "SessionStart", "SessionEnd", "TradingMode", "AccountName",
+    "SessionStart", "SessionEnd", "TradingMode", "CandleMode", "AccountName",
     "TradingCapital", "MaxDayLoss", "DayTarget", "CashBalance", "DayGain", "TargetHit",
 ]
 
@@ -116,6 +118,15 @@ def parse_sessions(folder: Path):
         # --- 1. Session-level metadata becomes one row in `sessions` ---
         session_row = {field: data.get(field) for field in SESSION_FIELDS}
         session_row["SourceFile"] = filepath.name
+
+        # Translate any enum-backed int fields (e.g. CandleMode) to readable names.
+        for column, names in ENUM_COLUMNS.items():
+            if column[0] != "session_rows" or column[1] not in session_row:
+                continue
+            ordinal = session_row[column[1]]
+            if isinstance(ordinal, int) and 0 <= ordinal < len(names):
+                session_row[column[1]] = names[ordinal]
+
         session_rows.append(session_row)
 
         # --- 2. Each list section becomes rows in its own table ---
@@ -182,7 +193,30 @@ def parse_sessions(folder: Path):
     for table_name, rows in section_rows.items():
         tables[table_name] = pd.DataFrame(rows)
 
+    check_one_session_per_day(tables["sessions"])
+
     return tables
+
+
+def check_one_session_per_day(sessions_df: pd.DataFrame):
+    """
+    Data quality check: sessions.csv should have exactly one row per
+    calendar day. Prints a warning listing any day with 0, 2+ rows.
+    """
+    df = sessions_df.copy()
+    df["SessionDate"] = pd.to_datetime(df["SessionStart"]).dt.date
+
+    counts = df.groupby("SessionDate").size()
+    dupes = counts[counts > 1]
+
+    if dupes.empty:
+        print("Data quality check passed: exactly one session per day.")
+        return
+
+    print(f"WARNING: {len(dupes)} day(s) with multiple sessions:")
+    for date, count in dupes.items():
+        files = df.loc[df["SessionDate"] == date, "SourceFile"].tolist()
+        print(f"  {date}: {count} sessions -> {files}")
 
 
 def save_tables(tables: dict, output_dir: Path):

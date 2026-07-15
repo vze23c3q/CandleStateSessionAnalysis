@@ -11,8 +11,8 @@ day-level collapsing needed here.
 Reads positions.csv directly (produced by parse_sessions.py).
 
 USAGE
------
-    python analyze_symbol.py "C:\\path\\to\\output"
+-----python analyze_symbol.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
+    
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -33,12 +33,12 @@ def symbol_summary(positions: pd.DataFrame) -> pd.DataFrame:
     counts, and win rate. Sorted by Net, best to worst.
     """
     grouped = positions.groupby("Symbol").agg(
-        Count=("RealizedGain", "size"),
+        Positions=("RealizedGain", "size"),
         Net=("RealizedGain", "sum"),
-        Win=("RealizedGain", lambda s: (s >= 0).sum()),
-        Loss=("RealizedGain", lambda s: (s < 0).sum()),
+        Wins=("RealizedGain", lambda s: (s >= 0).sum()),
+        Losses=("RealizedGain", lambda s: (s < 0).sum()),
     )
-    grouped["PctWin"] = grouped["Win"] / grouped["Count"]
+    grouped["WinPct"] = grouped["Wins"] / grouped["Positions"]
     grouped = grouped.sort_values("Net", ascending=False)
     return grouped
 
@@ -52,8 +52,10 @@ def format_for_display(summary: pd.DataFrame) -> pd.DataFrame:
     display["Net"] = display["Net"].map(
         lambda v: f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
     )
-    display["PctWin"] = display["PctWin"].map(lambda v: f"{v:.0%}")
-    return display
+    display["WinPct"] = display["WinPct"].map(lambda v: f"{v:.0%}")
+    
+    column_order = ["Positions", "Wins", "Losses", "WinPct", "Net"]
+    return display[column_order]
 
 
 def main():

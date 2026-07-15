@@ -90,14 +90,14 @@ def day_of_week_summary(daily: pd.DataFrame) -> pd.DataFrame:
     a TargetHit column here the same way Win/Loss are computed below.
     """
     grouped = daily.groupby("Weekday").agg(
-        Count=("DailyNet", "size"),
+        Positions=("DailyNet", "size"),
         Net=("DailyNet", "sum"),
-        Win=("DayWin", "sum"),
-        Loss=("DayWin", lambda s: (~s).sum()),
+        Wins=("DayWin", "sum"),
+        Losses=("DayWin", lambda s: (~s).sum()),
         TargetHit=("TargetHit", "sum"),
     )
-    grouped["PctWin"] = grouped["Win"] / grouped["Count"]
-    grouped["PctTargetHit"] = grouped["TargetHit"] / grouped["Count"]
+    grouped["WinPct"] = grouped["Wins"] / grouped["Positions"]
+    grouped["TargetHitPct"] = grouped["TargetHit"] / grouped["Positions"]
 
     # Reorder Mon-Fri regardless of which weekdays have data.
     grouped = grouped.reindex([d for d in WEEKDAY_ORDER if d in grouped.index])
@@ -171,9 +171,12 @@ def format_for_display(dow: pd.DataFrame) -> pd.DataFrame:
     display["Net"] = display["Net"].map(
         lambda v: f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
     )
-    display["PctWin"] = display["PctWin"].map(lambda v: f"{v:.0%}")
-    display["PctTargetHit"] = display["PctTargetHit"].map(lambda v: f"{v:.0%}")
-    return display
+    display["WinPct"] = display["WinPct"].map(lambda v: f"{v:.0%}")
+    display["TargetHitPct"] = display["TargetHitPct"].map(lambda v: f"{v:.0%}")
+    
+    column_order = ["Positions", "Wins", "Losses", "WinPct", "TargetHit", "TargetHitPct", "Net"]
+    return display[column_order]
+    
 
 
 def main():
@@ -197,8 +200,9 @@ def main():
 
     current = current_streak(daily)
     if current["Type"] is not None:
-        print(f"Current Streak:      {current['Length']} {current['Type']}"
-              f"{'s' if current['Length'] != 1 else ''}")
+        plural = {"Win": "Wins", "Loss": "Losses"}
+        label = current["Type"] if current["Length"] == 1 else plural[current["Type"]]
+        print(f"Current Streak:      {current['Length']} {label}")
 
 
 if __name__ == "__main__":
