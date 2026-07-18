@@ -41,7 +41,7 @@ from pathlib import Path
 
 import pandas as pd
 
-VERSION = "1.7"
+VERSION = "1.8"
 
 # The only thing that should need editing if the symbol lineup changes.
 SYMBOL_DIRECTION = {
@@ -56,6 +56,10 @@ INDEX_SYMBOLS = {
     "N": ["TQQQ", "QID"],   # Nasdaq
 }
 
+INDEX_NAMES = {
+    "S": "S&P",  
+    "N": "Nasdaq", 
+}
 
 def load_tables(output_folder: Path) -> tuple:
     """Reads sessions.csv and positions.csv from a parse_sessions.py output folder."""
@@ -187,7 +191,7 @@ def main():
     index = None
     index_symbols = None
     if len(args) >= 2:
-        index = args[1].upper()
+        index = INDEX_NAMES[args[1].upper()]
         if index not in INDEX_SYMBOLS:
             print(f'Index must be "S" or "N", got "{args[1]}"')
             sys.exit(1)
