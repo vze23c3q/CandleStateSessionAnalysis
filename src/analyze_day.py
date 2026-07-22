@@ -20,7 +20,7 @@ USAGE
 -----
     python analyze_day.py <Weekday> "C:\\path\\to\\output"
 
-    python analyze_day.py Thursday "C:\Git\CandleStateSessionAnalysis\data\output"
+    python analyze_day.py Wednesday "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
 
 <Weekday> is any of Monday/Tuesday/Wednesday/Thursday/Friday (case
 insensitive).

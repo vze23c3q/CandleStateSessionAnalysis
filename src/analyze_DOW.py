@@ -10,6 +10,8 @@ Reproduces the weekly performance table:
 
 Longest Win Streak / Longest Loss Streak
 Current Streak
+Streak continuation table (historical odds the next day extends a streak
+of a given type/length, with the current streak's odds called out)
 
 IMPORTANT: this is a per-DAY summary, not a per-trade summary. Count is
 the number of trading days that fell on that weekday; Win/Loss classify
@@ -159,6 +161,121 @@ def current_streak(daily: pd.DataFrame) -> dict:
     return {"Type": "Win" if current_type_is_win else "Loss", "Length": length}
 
 
+def streak_continuation(daily: pd.DataFrame) -> pd.DataFrame:
+    """
+    Answers: "we're currently sitting at N consecutive Wins (or Losses) --
+    historically, how often did the NEXT day extend that streak?"
+
+    Walks the trading days chronologically. After each day closes, the
+    account is sitting at some streak state (e.g. "3 Wins"). The following
+    day either continues the streak (same direction) or breaks it. Every
+    historical day except the most recent one contributes exactly one
+    observation to its streak state's bucket.
+
+    Note that continuation is direction-matched: at "2 Losses", a
+    continuation means the next day was also a Loss. So for Loss streaks,
+    a LOW ContinuePct is good news.
+
+    Sample sizes shrink fast at longer streak lengths, so treat the deep
+    rows with suspicion. If day-to-day results were truly independent,
+    every Win row would hover near the overall daily win rate no matter
+    the length -- deviations in thin buckets are more likely noise than
+    momentum/mean-reversion signal.
+    """
+    df = daily.copy()
+    df["SessionStart_dt"] = _parse_local_datetime(df["SessionStart"])
+    df = df.sort_values("SessionStart_dt")
+    wins = df["DayWin"].tolist()
+
+    records = []
+    streak_len = 0
+    streak_is_win = None
+    for i, day_win in enumerate(wins):
+        if day_win == streak_is_win:
+            streak_len += 1
+        else:
+            streak_is_win = day_win
+            streak_len = 1
+        # The last day has no "next day" yet -- it's the state we're
+        # trying to predict, not evidence.
+        if i < len(wins) - 1:
+            records.append(
+                {
+                    "Type": "Win" if streak_is_win else "Loss",
+                    "Length": streak_len,
+                    "Continued": wins[i + 1] == streak_is_win,
+                }
+            )
+
+    if not records:
+        return pd.DataFrame(
+            columns=["Type", "Length", "Count", "Continued", "ContinuePct"]
+        )
+
+    table = (
+        pd.DataFrame(records)
+        .groupby(["Type", "Length"])
+        .agg(Count=("Continued", "size"), Continued=("Continued", "sum"))
+        .reset_index()
+    )
+    table["ContinuePct"] = table["Continued"] / table["Count"]
+
+    # Win streaks first (ascending length), then Loss streaks.
+    table = table.sort_values(
+        ["Type", "Length"], ascending=[False, True]
+    ).reset_index(drop=True)
+    return table
+
+
+def current_streak_summary(daily: pd.DataFrame) -> str:
+    """
+    One-line sentence combining current_streak() with its row in
+    streak_continuation(), e.g.:
+
+        Current streak is 3 Wins. Historically at this state: next day
+        continued 4 of 8 times (50%).
+
+    Intended for notebook/report use where the full continuation table
+    would be too much -- just the row that matters right now. Falls back
+    to a "no precedent" message when the current streak is the longest of
+    its kind on record (its state has never had a next-day observation).
+    """
+    current = current_streak(daily)
+    if current["Type"] is None:
+        return "No trading days yet -- no current streak."
+
+    plural = {"Win": "Wins", "Loss": "Losses"}
+    label = current["Type"] if current["Length"] == 1 else plural[current["Type"]]
+    state = f"{current['Length']} {label}"
+
+    cont = streak_continuation(daily)
+    match = cont[
+        (cont["Type"] == current["Type"]) & (cont["Length"] == current["Length"])
+    ]
+    if match.empty:
+        return (
+            f"**Current Streak** is {state}. No historical precedent -- "
+            "this is the longest such streak on record."
+        )
+
+    row = match.iloc[0]
+    return (
+        f"**Current Streak** is {state}. Historically at this state: "
+        f"next day continued {int(row['Continued'])} of {int(row['Count'])} "
+        f"times ({row['ContinuePct']:.0%})."
+    )
+
+
+def format_continuation_for_display(cont: pd.DataFrame) -> pd.DataFrame:
+    """
+    Display copy of the continuation table: ContinuePct formatted like
+    "P0". The CSV keeps raw numerics, same convention as the DOW table.
+    """
+    display = cont.copy()
+    display["ContinuePct"] = display["ContinuePct"].map(lambda v: f"{v:.0%}")
+    return display
+
+
 def format_for_display(dow: pd.DataFrame) -> pd.DataFrame:
     """
     Returns a copy of the day-of-week table with Net formatted like C#'s
@@ -203,6 +320,16 @@ def main():
         plural = {"Win": "Wins", "Loss": "Losses"}
         label = current["Type"] if current["Length"] == 1 else plural[current["Type"]]
         print(f"Current Streak:      {current['Length']} {label}")
+
+    print("\n--- Streak continuation (chance the NEXT day extends the streak) ---")
+    cont = streak_continuation(daily)
+    print(format_continuation_for_display(cont).to_string(index=False))
+
+    cont_path = output_dir / "streak_continuation.csv"
+    cont.to_csv(cont_path, index=False)
+    print(f"\nWrote {cont_path}")
+
+    print(f"\n{current_streak_summary(daily)}")
 
 
 if __name__ == "__main__":

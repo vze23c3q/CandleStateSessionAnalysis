@@ -194,6 +194,7 @@ def parse_sessions(folder: Path):
         tables[table_name] = pd.DataFrame(rows)
 
     check_one_session_per_day(tables["sessions"])
+    check_consistent_strategy(tables["trade_signals"])
 
     return tables
 
@@ -217,6 +218,30 @@ def check_one_session_per_day(sessions_df: pd.DataFrame):
     for date, count in dupes.items():
         files = df.loc[df["SessionDate"] == date, "SourceFile"].tolist()
         print(f"  {date}: {count} sessions -> {files}")
+
+
+def check_consistent_strategy(trade_signals_df: pd.DataFrame):
+    """
+    Data quality check: trade_signals.Strategy is formatted like
+    "BuyMACDTarget/UPRO" -- strategy name, slash, symbol. Every row in a
+    folder should share the same strategy name (first token). Prints a
+    warning listing each stray strategy and the files it came from.
+    """
+    if "Strategy" not in trade_signals_df.columns or trade_signals_df.empty:
+        return
+
+    df = trade_signals_df.copy()
+    df["StrategyName"] = df["Strategy"].astype(str).str.split("/").str[0]
+
+    names = df["StrategyName"].value_counts()
+    if len(names) == 1:
+        print(f"Data quality check passed: all trade signals are {names.index[0]}.")
+        return
+
+    print(f"WARNING: {len(names)} different strategy names in trade_signals:")
+    for name, count in names.items():
+        files = sorted(df.loc[df["StrategyName"] == name, "SourceFile"].unique())
+        print(f"  {name}: {count} rows -> {files}")
 
 
 def save_tables(tables: dict, output_dir: Path):

@@ -42,21 +42,29 @@ TRADING_DAYS_PER_YEAR = 252
 def load_positions_and_sessions(output_dir: Path):
     positions = pd.read_csv(output_dir / "positions.csv")
     sessions = pd.read_csv(output_dir / "sessions.csv")
-    return positions, sessions
+    transactions = pd.read_csv(output_dir / "transactions.csv")
+    return positions, sessions, transactions
 
 
-def daily_results(positions: pd.DataFrame, sessions: pd.DataFrame) -> pd.DataFrame:
+def daily_results(positions: pd.DataFrame, sessions: pd.DataFrame, transactions: pd.DataFrame) -> pd.DataFrame:
     """
     Collapses positions down to one row per trading day (SourceFile):
     DailyNet = sum of that day's RealizedGain across all its positions.
     TargetHit comes from sessions.csv (one value per day, not summed from
     positions), same pattern as analyze_DOW.daily_results.
+    Transactions = count of that day's rows in transactions.csv (0 for
+    days with no transactions).
     """
     daily = positions.groupby("SourceFile", as_index=False)["RealizedGain"].sum()
     daily = daily.rename(columns={"RealizedGain": "DailyNet"})
 
+    txn_counts = transactions.groupby("SourceFile", as_index=False).size()
+    txn_counts = txn_counts.rename(columns={"size": "Transactions"})
+
     daily = sessions[["SourceFile", "SessionStart", "TargetHit"]].merge(daily, on="SourceFile", how="left")
+    daily = daily.merge(txn_counts, on="SourceFile", how="left")
     daily["DailyNet"] = daily["DailyNet"].fillna(0)
+    daily["Transactions"] = daily["Transactions"].fillna(0).astype(int)
 
     daily["SessionStart"] = pd.to_datetime(daily["SessionStart"], utc=True)
     daily = daily.sort_values("SessionStart").reset_index(drop=True)
@@ -99,6 +107,9 @@ def compute_stats(daily: pd.DataFrame, trading_capital: float) -> dict:
     else:
         annualized = (total / trading_capital) * (TRADING_DAYS_PER_YEAR / trading_days)
 
+    avg_transactions = daily["Transactions"].mean() if trading_days else float("nan")
+    max_transactions = daily["Transactions"].max() if trading_days else float("nan")
+    
     target_hit_pct = daily["TargetHit"].sum() / trading_days if trading_days else float("nan")
     win_pct = (daily["DailyNet"] >= 0).sum() / trading_days if trading_days else float("nan")
     
@@ -122,6 +133,8 @@ def compute_stats(daily: pd.DataFrame, trading_capital: float) -> dict:
         "Total": total,
         "TargetHitPct": target_hit_pct,
         "WinPct": win_pct,
+        "AvgTransactions": avg_transactions,
+        "MaxTransactions": max_transactions,
     }
 
 
@@ -132,8 +145,8 @@ def monthly_results(daily: pd.DataFrame) -> pd.DataFrame:
     and that month's worst single day.
     """
     monthly = daily.copy()
-    monthly["Month"] = monthly["SessionStart"].dt.to_period("M")
-
+    monthly["Month"] = monthly["SessionStart"].dt.tz_localize(None).dt.to_period("M")
+    
     summary = monthly.groupby("Month").agg(
         Days=("DailyNet", "count"),
         MaxLoss=("DailyNet", "min"),
@@ -161,6 +174,8 @@ def format_for_display(stats: dict) -> pd.Series:
         "Annualized Yield": f"{stats['Annualized']:.0%}",
         "Breakeven-or-Better Days": f"{stats['WinPct']:.0%}",
         "Target Hit Days": f"{stats['TargetHitPct']:.0%}",
+        "Avg Transactions per day": f"{stats['AvgTransactions']:.0f}",
+        "Max Transactions in single day": f"{stats['MaxTransactions']:.0f}",
         "Daily Average": fmt_dollars(stats["Average"]),
         "Average Win": fmt_dollars(stats["AverageWin"]),
         "Average Loss": fmt_dollars(stats["AverageLoss"]),
@@ -193,8 +208,8 @@ def main():
     output_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("output")
     output_dir = output_dir.resolve()
 
-    positions, sessions = load_positions_and_sessions(output_dir)
-    daily = daily_results(positions, sessions)
+    positions, sessions, transactions = load_positions_and_sessions(output_dir)
+    daily = daily_results(positions, sessions, transactions)
     
     #out_path = output_dir / "daily_summary.csv"
     #daily.to_csv(out_path)
