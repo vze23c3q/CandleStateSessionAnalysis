@@ -161,7 +161,7 @@ def plot_equity_curves(curve: pd.DataFrame, index_label: str, output_path: Path,
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels, rotation=45, ha="right")
 
-    ax.legend(title="Flips", loc="best")
+    ax.legend(title="Flips", loc="upper left")
 
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)

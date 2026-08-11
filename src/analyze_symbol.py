@@ -11,7 +11,7 @@ day-level collapsing needed here.
 Reads positions.csv directly (produced by parse_sessions.py).
 
 USAGE
------python analyze_symbol.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
+----- python analyze_symbol.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
     
 
 (pass the "output" folder that parse_sessions.py created)

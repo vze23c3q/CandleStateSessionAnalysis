@@ -10,6 +10,7 @@ USAGE
 -----
     python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget"
     python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDFlip"
 
 If you don't pass a path, it defaults to the current folder.
 
@@ -36,6 +37,15 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+
+
+TS_CORE = r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})"
+
+WALLCLOCK_COLUMNS = [
+    ("trade_signals", "CandleOpen"),
+    ("positions", "Opened"),
+    ("positions", "Closed"),
+]
 
 # The six list-shaped sections found inside every session file.
 # (dict key in the JSON) -> (name we'll use for the output table/CSV)
@@ -193,12 +203,29 @@ def parse_sessions(folder: Path):
     for table_name, rows in section_rows.items():
         tables[table_name] = pd.DataFrame(rows)
 
+    normalize_wallclock_timestamps(tables)
+
     check_one_session_per_day(tables["sessions"])
     check_consistent_strategy(tables["trade_signals"])
 
     return tables
 
-
+def normalize_wallclock_timestamps(tables: dict):
+    """CandleState writes ET wall-clock numerals with an inconsistent
+    suffix ('-04:00'/'-05:00' from prior-TZ serialization, spurious 'Z'
+    from current-TZ). Strip everything after seconds so timestamps are
+    naive ET, matching the engine's actual wall clock."""
+    for table_name, col in WALLCLOCK_COLUMNS:
+        df = tables.get(table_name)
+        if df is None or col not in df.columns or df.empty:
+            continue
+        before = df[col].copy()
+        df[col] = df[col].astype("string").str.extract(TS_CORE)[0]
+        changed = (before.astype("string") != df[col]).sum()
+        unparsed = df[col].isna().sum() - before.isna().sum()
+        print(f"Normalized {table_name}.{col}: {changed} rows stripped"
+              + (f", WARNING {unparsed} rows failed to parse" if unparsed > 0 else ""))
+            
 def check_one_session_per_day(sessions_df: pd.DataFrame):
     """
     Data quality check: sessions.csv should have exactly one row per

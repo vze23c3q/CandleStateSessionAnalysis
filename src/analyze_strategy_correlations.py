@@ -1,6 +1,6 @@
 """
 analyze_strategy_correlations.py
-Version: 1.1
+Version: 1.3
 
 Purpose:
     Scan the per-strategy `output` folders for MACDTarget, MACDTrail, and MACDFlip,
@@ -45,6 +45,11 @@ Analysis included:
       Moderate -> MACDTarget, Large -> MACDTrail), based on which strategy has
       the higher mean in each tertile - flagged as an in-sample fit, not a
       validated edge.
+    - Next-day opening range: converts the Moderate upper edge (the
+      Moderate/Large qcut boundary, in bps) into actual SPY price levels
+      around the most recent close. An open inside the band means the gap is
+      at most Moderate (rule stays on MACDTarget); outside means Large
+      (MACDTrail).
 
 Design notes:
     - FastSlopeDeg/FastTrend/SlowSlopeDeg/SlowTrend/RSI are lagged by one
@@ -81,6 +86,16 @@ Changelog:
           seaborn import and plot_correlation_heatmap() (currently unused -
           call is commented out in main()). Correlation matrix CSV save is
           currently disabled in main() as well.
+    1.2 - Added next-day opening range printout after the switching-rule
+          test: takes the Moderate upper edge (Moderate/Large qcut boundary)
+          and prints Close -/+ Close * edge/10000 price levels using the most
+          recent SPY close, so tomorrow's open can be eyeballed directly
+          against the MACDTarget/MACDTrail decision band. Switching-rule qcut
+          now uses retbins=True to capture its own edges.
+    1.3 - Opening range printout now labels its output with the analytics
+          symbol (SPY, QQQ, ...), parsed from the ANALYTICS_JSON filename
+          (analytics_<SYMBOL>.json) via the SYMBOL constant, so runs against
+          different analytics exports are self-describing.
 """
 
 from pathlib import Path
@@ -101,6 +116,10 @@ STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip"]
 # Timestamp, Open, Close, FastMA/FastSlopeDeg/FastTrend, SlowMA/SlowSlopeDeg/
 # SlowTrend, RSI, VolumeMA, etc.
 ANALYTICS_JSON = Path(r"C:\Git\CandleStateSessionAnalysis\data\analytics_QQQ.json")
+
+# Symbol parsed from the analytics filename (analytics_<SYMBOL>.json) so
+# console output self-describes which underlying this run used (SPY, QQQ, ...).
+SYMBOL = ANALYTICS_JSON.stem.split("_")[-1].upper()
 
 OUTPUT_DIR = BASE_DIR / "correlation_analysis"
 
@@ -395,7 +414,9 @@ def main():
     # as a hypothesis to monitor out-of-sample, not a proven edge.
     if "GapBps" in full.columns and full["GapBps"].notna().sum() > 0:
         switch_df = full.dropna(subset=["GapBps"]).copy()
-        switch_df["GapSize"] = pd.qcut(switch_df["GapBps"].abs(), q=3, labels=["Small", "Moderate", "Large"])
+        switch_df["GapSize"], switch_bins = pd.qcut(
+            switch_df["GapBps"].abs(), q=3, labels=["Small", "Moderate", "Large"], retbins=True
+        )
         switch_df["ChosenStrategy"] = np.where(switch_df["GapSize"] == "Large", "MACDTrail", "MACDTarget")
         switch_df["SwitchedDayGain"] = switch_df.apply(lambda r: r[r["ChosenStrategy"]], axis=1)
 
@@ -409,6 +430,30 @@ def main():
             diff = switched_total - actual_total
             pct = (diff / abs(actual_total) * 100) if actual_total != 0 else float("nan")
             print(f"  vs pure {strategy:<12} actual: {actual_total:>12,.2f}   switch uplift: {diff:>12,.2f}  ({pct:+.1f}%)")
+
+        # --- Next-day opening range: Moderate upper edge as price levels ---
+        # switch_bins[2] is the Moderate/Large boundary in |GapBps|. Applied
+        # to the most recent close, it gives the price band tomorrow's open
+        # must land inside for the gap to be at most Moderate (rule stays on
+        # MACDTarget); an open outside the band is a Large gap (MACDTrail).
+        # Edges are data-relative (qcut), so the band drifts as sessions are
+        # added - recompute after every session, don't treat it as fixed.
+        close_df = full.dropna(subset=["SPY_Close"]).sort_values("Date")
+        if not close_df.empty:
+            last_row = close_df.iloc[-1]
+            last_close = last_row["SPY_Close"]
+            mod_upper_bps = switch_bins[2]
+            band = last_close * mod_upper_bps / 10000
+            lower = last_close - band
+            upper = last_close + band
+            print("\n=== Opening range ===")
+            print(f"Reference {SYMBOL} Close: {last_close:,.2f}  ({last_row['Date']:%Y-%m-%d})")
+            print(f"Moderate upper edge: {mod_upper_bps:.2f} bps  "
+                  f"(Close -/+ Close * {mod_upper_bps:.2f}/10000 = -/+ {band:,.2f})")
+            print(f"Moderate {SYMBOL} Open:  {lower:,.2f}  to  {upper:,.2f}")
+            print("Open inside band -> Small/Moderate gap -> MACDTarget; outside -> Large -> MACDTrail.")
+        else:
+            print(f"\n[WARN] No {SYMBOL} Close data available - skipping opening range calc.")
 
 
 if __name__ == "__main__":

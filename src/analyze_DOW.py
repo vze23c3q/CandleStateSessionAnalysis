@@ -27,6 +27,7 @@ USAGE
 -----
     python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
     python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDFlip\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """

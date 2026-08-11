@@ -35,17 +35,11 @@ Conventions:
 
 USAGE (PowerShell - note backtick line continuation, no trailing spaces after it):
   python analyze_regime.py `
-      --sessions   C:\Git\CandleStateSessionAnalysis\data\MACDTrail\output\sessions.csv `
+      --sessions   C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output\sessions.csv `
       --analytics  C:\Git\CandleStateSessionAnalysis\data\analytics_SPY.json `
       --fear-greed C:\Git\CandleStateSessionAnalysis\data\fear_greed.csv `
       --eval-start 2026-07-01
 
-USAGE (cmd.exe - caret line continuation):
-  python C:\Git\CandleStateSessionAnalysis\src\analyze_regime.py ^
-      --sessions   C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output\sessions.csv ^
-      --analytics  C:\Git\CandleStateSessionAnalysis\data\analytics_SPY.json ^
-      --fear-greed C:\Git\CandleStateSessionAnalysis\data\fear_greed.csv ^
-      --eval-start 2026-07-01
 
   Optional:
       --fast-slope            use FastSlopeDeg instead of SlowSlopeDeg
@@ -64,6 +58,8 @@ import sys
 
 import numpy as np
 import pandas as pd
+import re
+from pathlib import Path
 
 FG_BANDS = [(-np.inf, 25, "ExtremeFear"), (25, 45, "Fear"),
             (45, 55, "Neutral"), (55, 75, "Greed"), (75, np.inf, "ExtremeGreed")]
@@ -78,6 +74,19 @@ def load_sessions(path):
     df["TargetHit"] = df["TargetHit"].astype(bool)
     return df[["Date", "DayGain", "TargetHit", "Win"]].sort_values("Date").reset_index(drop=True)
 
+
+def derive_strategy(sessions_path: str) -> str:
+    """Strategy name from path convention: ...\\data\\<STRATEGY>\\output\\sessions.csv"""
+    parts = Path(sessions_path).resolve().parts
+    try:
+        return parts[parts.index("output") - 1]
+    except (ValueError, IndexError):
+        return "UNKNOWN"
+
+def derive_benchmark(analytics_path: str) -> str:
+    """Benchmark symbol from filename convention: analytics_<SYMBOL>.json"""
+    m = re.match(r"analytics_([A-Za-z]+)\.json$", Path(analytics_path).name)
+    return m.group(1).upper() if m else "UNKNOWN"
 
 def load_analytics(path, use_fast_slope):
     raw = json.load(open(path))
@@ -250,6 +259,9 @@ def main():
     market = load_analytics(args.analytics, args.fast_slope)
     fg = load_fear_greed(args.fear_greed)
 
+    strategy  = derive_strategy(args.sessions)
+    benchmark = derive_benchmark(args.analytics)
+
     df = sessions.merge(market, on="Date", how="left").merge(fg, on="Date", how="left")
     missing = df[df["SlopeDeg"].isna() | df["GapBps"].isna()]
     if len(missing):
@@ -283,6 +295,7 @@ def main():
     hdr = "=" * 78
     print(hdr)
     print(f"analyze_regime.py v{VERSION}")
+    print(f"Strategy: {strategy}   Benchmark: {benchmark}")
     print(f"Baseline: {df.loc[base_mask,'Date'].min():%Y-%m-%d} .. {df.loc[base_mask,'Date'].max():%Y-%m-%d}  ({n_base} days)")
     print(f"Eval:     {df.loc[df['IsEval'],'Date'].min():%Y-%m-%d} .. {df.loc[df['IsEval'],'Date'].max():%Y-%m-%d}  ({n_eval} days)")
     print(f"Slope source: {'FastSlopeDeg' if args.fast_slope else 'SlowSlopeDeg'}")
