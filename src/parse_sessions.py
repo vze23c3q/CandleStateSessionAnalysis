@@ -51,6 +51,7 @@ WALLCLOCK_COLUMNS = [
 # (dict key in the JSON) -> (name we'll use for the output table/CSV)
 SECTIONS = {
     "TradeSignals": "trade_signals",
+    "LineChartSummary": "line_chart_summary",
     "PriceLevels": "price_levels",
     "Orders": "orders",
     "Transactions": "transactions",
@@ -75,12 +76,18 @@ ENUM_COLUMNS = {
     ("trade_signals", "CandleName"): [
         "Undefined", "Doji", "BullElephant", "BearElephant", "ToppingTail",
         "BottomingTail", "Bull180", "Bear180", "BullHammer", "BearHammer",
-        "BullColorChange", "BearColorChange", 
+        "BullColorChange", "BearColorChange", "AggBullElephant", "AggBearElephant"
     ],
+
     ("trade_signals", "CandleLocation"): ["Plus3", "Plus2", "Plus1", "Neutral", "Minus1", "Minus2", "Minus3",
     ],
     ("trade_signals", "CandleColor"): ["White", "Green", "Red"
     ],
+    ("trade_signals", "Control"): ["Contested", "Buyers", "Sellers"
+    ],
+    ("trade_signals", "LegDirection"): ["Unknown", "Up", "Down"
+    ],
+
     ("trade_signals", "Signal"): ["Idle", "MarketOpen", "Buy", "Add", "Remove", 
         "Sell", "Continue", "Gated", "Stopped", "SessionComplete"
     ],

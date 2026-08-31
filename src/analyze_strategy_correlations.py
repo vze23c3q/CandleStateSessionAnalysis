@@ -115,7 +115,7 @@ STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip"]
 # SwingState daily analytics export (SPY) - JSON array of per-day records with
 # Timestamp, Open, Close, FastMA/FastSlopeDeg/FastTrend, SlowMA/SlowSlopeDeg/
 # SlowTrend, RSI, VolumeMA, etc.
-ANALYTICS_JSON = Path(r"C:\Git\CandleStateSessionAnalysis\data\analytics_QQQ.json")
+ANALYTICS_JSON = Path(r"C:\Git\CandleStateSessionAnalysis\data\analytics_SPY.json")
 
 # Symbol parsed from the analytics filename (analytics_<SYMBOL>.json) so
 # console output self-describes which underlying this run used (SPY, QQQ, ...).
@@ -142,13 +142,13 @@ def find_first_col(columns, candidates, label):
 
 
 def find_session_csvs(strategy: str) -> list[Path]:
-    """Scan <BASE_DIR>/<strategy>/output for sessions.csv (recursive, any *sessions*.csv)."""
+    """Scan <BASE_DIR>/<strategy>/output for sessions.csv (recursive, sessions.csv)."""
     output_folder = BASE_DIR / strategy / "output"
     if not output_folder.exists():
         print(f"  [WARN] Output folder not found: {output_folder}")
         return []
 
-    matches = sorted(output_folder.rglob("*sessions*.csv"))
+    matches = sorted(output_folder.rglob("sessions.csv"))
     if not matches:
         print(f"  [WARN] No *sessions*.csv files found under {output_folder}")
     return matches

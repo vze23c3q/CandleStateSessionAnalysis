@@ -38,7 +38,7 @@ Merge behavior per file:
     warns if the tape set itself is incomplete (last candle before 15:52).
 
 USAGE:
-  python finish_day_candles.py 20260805
+  python finish_day_candles.py 20260831
 
   Optional:
       --root C:\ProgramData\CandleState\Candles   (default shown)
