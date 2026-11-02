@@ -89,7 +89,7 @@ ENUM_COLUMNS = {
     ],
 
     ("trade_signals", "Signal"): ["Idle", "MarketOpen", "Buy", "Add", "Remove", 
-        "Sell", "Continue", "Gated", "Stopped", "SessionComplete"
+        "Sell", "Continue", "Gated", "Stopped", "SessionComplete", "TargetHit"
     ],
     ("trade_signals", "MACDPhase"): ["RisingGreen", "FallingGreen", "FallingRed", "RisingRed"
     ],

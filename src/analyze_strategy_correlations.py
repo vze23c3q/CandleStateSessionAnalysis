@@ -115,6 +115,8 @@ STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip"]
 # SwingState daily analytics export (SPY) - JSON array of per-day records with
 # Timestamp, Open, Close, FastMA/FastSlopeDeg/FastTrend, SlowMA/SlowSlopeDeg/
 # SlowTrend, RSI, VolumeMA, etc.
+
+# python analyze_strategy_correlations.py
 ANALYTICS_JSON = Path(r"C:\Git\CandleStateSessionAnalysis\data\analytics_SPY.json")
 
 # Symbol parsed from the analytics filename (analytics_<SYMBOL>.json) so

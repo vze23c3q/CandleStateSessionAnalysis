@@ -3,6 +3,9 @@ fetch_polygon_candles.py
 Version: 1.0
 
 Purpose:
+    Step 1 of 3
+    Step 2 aggregate_candles.py
+    Step 3 split_candle_sets.py
     One-time backfill of historical minute candles (OHLC + Volume) from the
     Polygon.io aggregates API for the CandleState ETF set. Writes one CSV per
     symbol. Handles pagination (Polygon caps each response at 50,000 bars, and
@@ -69,8 +72,8 @@ API_KEY = os.environ.get("POLYGON_API_KEY", "x4flepjiLfR5HOkEXUm8cjXKinw7lgMJ")
 
 SYMBOLS = ["UPRO", "SDS", "TQQQ", "QID"]
 
-START_DATE = "2025-01-02"
-END_DATE = "2025-06-06"
+START_DATE = "2026-10-06"
+END_DATE = "2026-10-14"
 
 MULTIPLIER = 1          # bar size in TIMESPAN units (1 = 1-minute bars)
 TIMESPAN = "minute"
