@@ -3,7 +3,7 @@ analyze_strategy_correlations.py
 Version: 1.3
 
 Purpose:
-    Scan the per-strategy `output` folders for MACDTarget, MACDTrail, and MACDFlip,
+    Scan the per-strategy `output` folders for Target, Trail, and LVL,
     pull daily DayGain from sessions.csv (or *sessions*.csv files) in each, combine
     into a single date-indexed DataFrame (one column per strategy), then correlate
     each strategy's daily performance against SPY trend-regime data (SwingState
@@ -41,15 +41,15 @@ Analysis included:
       actual qcut bin edges printed.
     - Gap bucket comparison: same structure, using |GapBps| tertiles
       (Small/Moderate/Large) and gap direction.
-    - Candidate switching rule test: 3-way gap-size split (Small -> MACDTarget,
-      Moderate -> MACDTarget, Large -> MACDTrail), based on which strategy has
+    - Candidate switching rule test: 3-way gap-size split (Small -> Target,
+      Moderate -> Target, Large -> Trail), based on which strategy has
       the higher mean in each tertile - flagged as an in-sample fit, not a
       validated edge.
     - Next-day opening range: converts the Moderate upper edge (the
       Moderate/Large qcut boundary, in bps) into actual SPY price levels
       around the most recent close. An open inside the band means the gap is
-      at most Moderate (rule stays on MACDTarget); outside means Large
-      (MACDTrail).
+      at most Moderate (rule stays on Target); outside means Large
+      (Trail).
 
 Design notes:
     - FastSlopeDeg/FastTrend/SlowSlopeDeg/SlowTrend/RSI are lagged by one
@@ -79,10 +79,10 @@ Changelog:
           validation printout, correlation matrix, best-performer summary,
           oracle + uplift concentration, trend-regime and gap bucket
           comparisons with bin edges and counts, in-sample switching-rule test.
-    1.1 - Fixed the switching rule from a 2-way split (Small -> MACDTarget,
-          Moderate+Large lumped together -> MACDTrail) to the correct 3-way
-          split matching the actual bucket means: MACDTarget wins both Small
-          AND Moderate, MACDTrail only wins Large. Merged in matplotlib/
+    1.1 - Fixed the switching rule from a 2-way split (Small -> Target,
+          Moderate+Large lumped together -> Trail) to the correct 3-way
+          split matching the actual bucket means: Target wins both Small
+          AND Moderate, Trail only wins Large. Merged in matplotlib/
           seaborn import and plot_correlation_heatmap() (currently unused -
           call is commented out in main()). Correlation matrix CSV save is
           currently disabled in main() as well.
@@ -90,7 +90,7 @@ Changelog:
           test: takes the Moderate upper edge (Moderate/Large qcut boundary)
           and prints Close -/+ Close * edge/10000 price levels using the most
           recent SPY close, so tomorrow's open can be eyeballed directly
-          against the MACDTarget/MACDTrail decision band. Switching-rule qcut
+          against the Target/Trail decision band. Switching-rule qcut
           now uses retbins=True to capture its own edges.
     1.3 - Opening range printout now labels its output with the analytics
           symbol (SPY, QQQ, ...), parsed from the ANALYTICS_JSON filename
@@ -110,7 +110,7 @@ import seaborn as sns
 # ------------------------------------------------------------------------- #
 
 BASE_DIR = Path(r"C:\Git\CandleStateSessionAnalysis\data")
-STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip"]
+STRATEGIES = ["Target", "Trail", "LVL"]
 
 # SwingState daily analytics export (SPY) - JSON array of per-day records with
 # Timestamp, Open, Close, FastMA/FastSlopeDeg/FastTrend, SlowMA/SlowSlopeDeg/
@@ -403,10 +403,10 @@ def main():
               "Add 'Open' to the SwingState SPY analytics export to enable this.")
 
     # --- Candidate switching rule: 3-way gap-size split ---
-    # Rule: Small -> MACDTarget, Moderate -> MACDTarget, Large -> MACDTrail.
+    # Rule: Small -> Target, Moderate -> Target, Large -> Trail.
     # Picked as the higher-mean strategy in EACH tertile (previous version
-    # incorrectly lumped Moderate in with Large, handing MACDTrail a bucket
-    # where MACDTarget actually had the higher mean).
+    # incorrectly lumped Moderate in with Large, handing Trail a bucket
+    # where Target actually had the higher mean).
     #
     # IMPORTANT: this rule was picked by inspecting this SAME sample, so the
     # comparison below is in-sample and optimistic BY CONSTRUCTION. A 3-way
@@ -419,11 +419,11 @@ def main():
         switch_df["GapSize"], switch_bins = pd.qcut(
             switch_df["GapBps"].abs(), q=3, labels=["Small", "Moderate", "Large"], retbins=True
         )
-        switch_df["ChosenStrategy"] = np.where(switch_df["GapSize"] == "Large", "MACDTrail", "MACDTarget")
+        switch_df["ChosenStrategy"] = np.where(switch_df["GapSize"] == "Large", "Trail", "Target")
         switch_df["SwitchedDayGain"] = switch_df.apply(lambda r: r[r["ChosenStrategy"]], axis=1)
 
         switched_total = switch_df["SwitchedDayGain"].sum()
-        print("\n=== Candidate switching rule: Small/Moderate gap -> MACDTarget, Large -> MACDTrail ===")
+        print("\n=== Candidate switching rule: Small/Moderate gap -> Target, Large -> Trail ===")
         print("[WARNING] In-sample fit (3 free choices) - rule was chosen from this same data. "
               "Not proven out-of-sample.")
         print(f"Switched total: {switched_total:,.2f}  (n={len(switch_df)})")
@@ -437,7 +437,7 @@ def main():
         # switch_bins[2] is the Moderate/Large boundary in |GapBps|. Applied
         # to the most recent close, it gives the price band tomorrow's open
         # must land inside for the gap to be at most Moderate (rule stays on
-        # MACDTarget); an open outside the band is a Large gap (MACDTrail).
+        # Target); an open outside the band is a Large gap (Trail).
         # Edges are data-relative (qcut), so the band drifts as sessions are
         # added - recompute after every session, don't treat it as fixed.
         close_df = full.dropna(subset=["SPY_Close"]).sort_values("Date")
@@ -453,7 +453,7 @@ def main():
             print(f"Moderate upper edge: {mod_upper_bps:.2f} bps  "
                   f"(Close -/+ Close * {mod_upper_bps:.2f}/10000 = -/+ {band:,.2f})")
             print(f"Moderate {SYMBOL} Open:  {lower:,.2f}  to  {upper:,.2f}")
-            print("Open inside band -> Small/Moderate gap -> MACDTarget; outside -> Large -> MACDTrail.")
+            print("Open inside band -> Small/Moderate gap -> Target; outside -> Large -> Trail.")
         else:
             print(f"\n[WARN] No {SYMBOL} Close data available - skipping opening range calc.")
 

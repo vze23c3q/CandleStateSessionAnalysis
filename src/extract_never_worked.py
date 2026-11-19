@@ -25,7 +25,7 @@ visible.
 VERSION = "1.8"
 
 USAGE:
-  python extract_never_worked.py "C:\\Git\\CandleStateSessionAnalysis\\data\\MACDTrail\\output"
+  python extract_never_worked.py "C:\\Git\\CandleStateSessionAnalysis\\data\\Trail\\output"
 
 Expects POSITIONS_FILENAME and SIGNALS_FILENAME (below) to exist directly in
 the given folder. Writes output files into that same folder. To change any

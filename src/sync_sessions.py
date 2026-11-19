@@ -1,20 +1,21 @@
 r"""
-sync_sessions.py - Version 1.2.0
+sync_sessions.py - Version 1.3.0
 
 Moves new CandleState session files from the CandleState Sessions folder into
 the per-strategy data folders of this repo.
 
 Source: C:\ProgramData\CandleState\Sessions
-Dest:   <repo>\data\{MACDTarget,MACDTrail,MACDFlip,SoftMarket}
+Dest:   <repo>\data\{Target,Trail,LVL}
 
 Only these names are considered, where runStamp is yyyy-MM-dd_HHmm or
 yyyy-MM-dd_HHmmss (Session_Live__*, *.zip and other names are ignored):
-    Session_File_{Token}_{tradeDate}__{runStamp}.json   (Token: Target, Trail, Flip, Soft)
+    Session_File_{Strategy}_{tradeDate}__{runStamp}.json
     Session_File__{tradeDate}__{runStamp}[__{Strategy}].json
-If the name carries a Token or Strategy, it must match the strategy in the JSON
-or the file is skipped. The strategy is read
+If the name carries a Strategy, it must match the strategy in the JSON or the
+file is skipped. The strategy is read
 from the JSON: every TradeSignals item has "Strategy": "<Strategy>/<Symbol>",
-and the prefix before "/" must be one of the strategy folder names. Files
+and the prefix before "/" must be one of the strategy folder names (the older
+MACDTarget and MACDTrail count as Target and Trail). Files
 with no signals, more than one prefix, or an unknown prefix are skipped and
 reported.
 
@@ -39,10 +40,11 @@ from pathlib import Path
 
 SOURCE_DIR = Path(r"C:\ProgramData\CandleState\Sessions")
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip", "SoftMarket"]
+STRATEGIES = ["Target", "Trail", "LVL"]
 
-# Short strategy tokens used in file names (Session_File_<Token>_...) -> folder name.
-NAME_TOKENS = {"Target": "MACDTarget", "Trail": "MACDTrail", "Flip": "MACDFlip", "Soft": "SoftMarket"}
+# Older strategy names still found in session JSON (and old __<Strategy> file
+# suffixes) -> folder name.
+LEGACY_NAMES = {"MACDTarget": "Target", "MACDTrail": "Trail"}
 
 FILE_GLOB = "Session_File_*.json"
 FILE_RE = re.compile(
@@ -64,7 +66,7 @@ def name_strategy(path):
     if not m:
         return None
     named = m.group("token") or m.group("suffix")
-    return NAME_TOKENS.get(named, named)
+    return LEGACY_NAMES.get(named, named)
 
 
 def read_strategy(path):
@@ -76,6 +78,7 @@ def read_strategy(path):
         return None, f"unreadable JSON ({e})"
     signals = data.get("TradeSignals") or []
     prefixes = {str(s.get("Strategy", "")).split("/")[0] for s in signals}
+    prefixes = {LEGACY_NAMES.get(p, p) for p in prefixes}
     prefixes.discard("")
     if not prefixes:
         return None, "no TradeSignals with a Strategy"

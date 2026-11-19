@@ -59,7 +59,7 @@ to filter.
 
 Usage
 -----
-    python analyze_trailing_period.py --src "C:\\Git\\CandleStateSessionAnalysis\\data\\MACDTarget\\output"
+    python analyze_trailing_period.py --src "C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output"
 
     python analyze_trailing_period.py --src ./data --window 10 --alert-percentile 15
 

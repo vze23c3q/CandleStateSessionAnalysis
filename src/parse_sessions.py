@@ -8,9 +8,9 @@ Excel, load them into another script, or query them with pandas/SQL.
 
 USAGE
 -----
-    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget"
-    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail"
-    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\MACDFlip"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\Target"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\Trail"
+    python parse_sessions.py "C:\Git\CandleStateSessionAnalysis\data\LVL"
 
 If you don't pass a path, it defaults to the current folder.
 

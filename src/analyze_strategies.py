@@ -4,7 +4,7 @@ Version: 1.2
 
 Purpose:
     Cross-strategy day-of-week comparison. Scans the per-strategy `output`
-    folders (MACDTarget, MACDTrail, MACDFlip), pulls daily DayGain from
+    folders (Target, Trail, LVL), pulls daily DayGain from
     sessions.csv in each, aggregates net gain by weekday per strategy, prints
     a summary table, and renders a grouped bar chart (one bar group per
     weekday, one color per strategy) with per-strategy totals in the legend.
@@ -84,7 +84,7 @@ VERSION = "1.2"
 # ------------------------------------------------------------------------- #
 
 BASE_DIR = Path(r"C:\Git\CandleStateSessionAnalysis\data")
-STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip"]
+STRATEGIES = ["Target", "Trail", "LVL"]
 
 OUTPUT_DIR = BASE_DIR / "strategy_analysis"
 
@@ -92,7 +92,7 @@ DATE_COL_CANDIDATES = ["SessionStart", "SessionDate", "date", "session_date"]
 GAIN_COL_CANDIDATES = ["DayGain", "DayGainLoss", "RealizedPL", "daygain"]
 
 # Fixed palette, assigned by STRATEGIES list order. Ordered so the default
-# list gets MACDTarget=orange, MACDTrail=blue, MACDFlip=aqua; yellow and
+# list gets Target=orange, Trail=blue, LVL=aqua; yellow and
 # magenta are spares if you ever run more than five strategies.
 STRATEGY_COLORS = ["#eb6834", "#2a78d6", "#1baf7a", "#eda100", "#e87ba4"]
 

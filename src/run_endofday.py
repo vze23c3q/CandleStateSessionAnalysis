@@ -1,17 +1,17 @@
 r"""
-run_endofday.py - Version 1.5.0
+run_endofday.py - Version 1.6.0
 
 The end-of-day steps, in order; if a step fails, the later steps don't run:
   1. src\finish_day_candles.py for the current date (YYYYMMDD), to finish the
      day's live candle sets. Skipped when there is no "<date> Live" folder
      (the streamer didn't die), or with --skip-finish. Pass --date to finish
-     a different day. If it does run, the job stops after it so the four
+     a different day. If it does run, the job stops after it so the
      strategies can be re-run in CandleState on the merged candles; then run
      it again (the Live folder was renamed, so this step is skipped).
   2. src\sync_sessions.py, to move new session files into data\<Strategy>.
   3. The notebooks, below.
-  4. src\analyze_pop.py on data\MACDTarget\output, for the next session's
-     POP. Skipped if the MACDTarget notebook failed in this run.
+  4. src\analyze_pop.py on data\Target\output, for the next session's
+     POP. Skipped if the Target notebook failed in this run.
 
 Step 3 runs notebooks\analyze_backtest.ipynb once per strategy, replacing the daily
 routine of editing STRATEGY = strategies[N] and re-running the notebook by hand.
@@ -27,14 +27,15 @@ A failing strategy is reported and the remaining strategies still run.
 
 Each run echoes the notebook's data quality checks (one session per day, all
 signals tagged with one strategy name) and also checks that the name is the
-strategy being run. Any warning is shown in the summary and makes the exit
-code 1, but POP is skipped only if the MACDTarget notebook outright failed.
+strategy being run (or its older name, e.g. MACDTarget for Target). Any warning
+is shown in the summary and makes the exit code 1, but POP is skipped only if
+the Target notebook outright failed.
 
 Requires: pip install nbclient nbformat
 
 USAGE:
-    python run_endofday.py                         # all four strategies
-    python run_endofday.py SoftMarket MACDFlip     # just these
+    python run_endofday.py                         # all strategies
+    python run_endofday.py Trail LVL               # just these
     python run_endofday.py --date 20261028         # finish a different day
     python run_endofday.py --skip-finish           # notebooks only
 """
@@ -58,9 +59,11 @@ DATA_DIR = REPO_DIR / "data"
 FINISH_DAY_SCRIPT = REPO_DIR / "src" / "finish_day_candles.py"
 SYNC_SESSIONS_SCRIPT = REPO_DIR / "src" / "sync_sessions.py"
 ANALYZE_POP_SCRIPT = REPO_DIR / "src" / "analyze_pop.py"
-POP_STRATEGY = "MACDTarget"  # analyze_pop.py is fit on this strategy's output
+POP_STRATEGY = "Target"  # analyze_pop.py is fit on this strategy's output
 CANDLES_ROOT = Path(r"C:\ProgramData\CandleState\Candles")  # finish_day_candles default --root
-STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip", "SoftMarket"]
+STRATEGIES = ["Target", "Trail", "LVL"]
+# Older names some session files still carry in their signals.
+LEGACY_NAMES = {"Target": "MACDTarget", "Trail": "MACDTrail"}
 
 STRATEGY_LINE_RE = re.compile(r"^STRATEGY\s*=.*$", re.MULTILINE)
 
@@ -126,11 +129,12 @@ def check_output(nb, strategy):
             if line.startswith("Data quality check") or (line.startswith("Wrote ") and line.endswith(".html")):
                 print(f"  {line}")
 
-    expected = f"Data quality check passed: all trade signals are {strategy}."
+    expected = {f"Data quality check passed: all trade signals are {name}."
+                for name in (strategy, LEGACY_NAMES.get(strategy))}
     if not any(line.startswith("Data quality check passed: all trade signals are") for line in lines):
         print("  WARNING: no strategy-name check in the notebook output.")
         warnings_found += 1
-    elif expected not in lines:
+    elif not expected.intersection(lines):
         print(f"  WARNING: trade signals are not tagged {strategy} (see above).")
         warnings_found += 1
     return warnings_found
@@ -157,7 +161,7 @@ def main():
     else:
         # The strategies must be re-run in CandleState on the merged candles
         # before their session files are worth syncing.
-        print("\nLive candles finished. Run the four strategies in CandleState, then run")
+        print("\nLive candles finished. Run the strategies in CandleState, then run")
         print("run_endofday.py again (the Live folder is gone, so this step is skipped).")
         sys.exit(0)
 
@@ -183,7 +187,7 @@ def main():
         print(f"  {status} ({elapsed:.0f}s)", flush=True)
         results.append((strategy, status))
 
-    # POP reads MACDTarget's notebook output, so skip it if that notebook just failed.
+    # POP reads Target's notebook output, so skip it if that notebook just failed.
     if dict(results).get(POP_STRATEGY, "OK").startswith("FAILED"):
         results.append(("POP", f"SKIPPED: {POP_STRATEGY} failed"))
     else:

@@ -10,7 +10,7 @@ WHY THIS FEATURE
 Leg count is effectively an intraday swing/volatility measure: with ~191
 two-minute bars per day, more completed legs = more 15-bps swings
 (r = 0.85 vs. summed |2-min returns|). Volatility clusters day to day
-(autocorrelation ~0.5), and MACDTarget earns its money on days that move.
+(autocorrelation ~0.5), and Target earns its money on days that move.
 So yesterday's leg count is a cheap, reactive read on whether today is
 likely to have enough movement to reach target.
 
@@ -26,7 +26,7 @@ Calibration (expanding walk-forward over 2025-2026):
 
 USAGE
 -----
-    python analyze_pop.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
+    python analyze_pop.py "C:\Git\CandleStateSessionAnalysis\data\Target\output"
 
 Uses line_chart_summary.csv if it exists; otherwise recomputes leg counts
 from trade_signals.csv with a port of LineChart.AddCandle (verified to

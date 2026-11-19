@@ -22,7 +22,7 @@ Position's ID) and attached alongside the VWAP.
 
 USAGE
 -----
-    python analyze_sessions.py "C:\\Git\\CandleStateSessionAnalysis\\data\\MACDTarget\\output"
+    python analyze_sessions.py "C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """

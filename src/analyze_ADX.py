@@ -27,8 +27,8 @@ position (not per partial-fill transaction).
 
 USAGE
 -----
-    python analyze_ADX.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
-    python analyze_ADX.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail\output"
+    python analyze_ADX.py "C:\Git\CandleStateSessionAnalysis\data\Target\output"
+    python analyze_ADX.py "C:\Git\CandleStateSessionAnalysis\data\Trail\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """

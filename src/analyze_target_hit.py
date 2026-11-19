@@ -17,10 +17,10 @@ that's already been parsed once, not a from-scratch parse.
 
 USAGE
 -----
-    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
-    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output" S
-    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output" N
-    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output" S --miss
+    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\Target\output"
+    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\Target\output" S
+    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\Target\output" N
+    python analyze_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\Target\output" S --miss
 
 INDEX is OPTIONAL: "S" for S&P (UPRO/SDS), "N" for Nasdaq (TQQQ/QID), or
 omit it entirely to look at both indexes together (no symbol filtering --

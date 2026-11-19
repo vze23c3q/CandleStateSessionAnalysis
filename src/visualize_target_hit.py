@@ -31,9 +31,9 @@ rather than duplicating them -- must be run from the same folder (src/).
 
 USAGE
 -----
-    python visualize_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
-    python visualize_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output" S
-    python visualize_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output" N
+    python visualize_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\Target\output"
+    python visualize_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\Target\output" S
+    python visualize_target_hit.py "C:\Git\CandleStateSessionAnalysis\data\Target\output" N
 
 INDEX is optional, same as analyze_target_hit.py: "S" for S&P (UPRO/SDS),
 "N" for Nasdaq (TQQQ/QID), or omit for both combined (how you actually
@@ -240,7 +240,7 @@ def extract_strategy_name(folder: Path) -> str:
     Pulls the strategy name out of the output folder path -- the folder
     passed in is the "output" directory itself, so the strategy name is
     its parent folder's name.
-    e.g. "...\\data\\MACDTarget\\output" -> "MACDTarget"
+    e.g. "...\\data\\Target\\output" -> "Target"
     Falls back to the folder's own name if it isn't literally "output"
     (e.g. someone points this at a differently-named folder).
     """

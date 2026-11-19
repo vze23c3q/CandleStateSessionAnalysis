@@ -15,8 +15,8 @@ of a given type/length, with the current streak's odds called out)
 
 IMPORTANT: this is a per-DAY summary, not a per-trade summary. Count is
 the number of trading days that fell on that weekday; Win/Loss classify
-each day as a whole (net-positive or net-negative), not each individual
-position. A day with 5 winning trades and 1 big loser can still be a
+each day as a whole (breakeven-or-better or net-negative), not each
+individual position. A day with 5 winning trades and 1 big loser can still be a
 "Loss" day overall if the loser outweighs the winners.
 
 Reads positions.csv and sessions.csv (both produced by parse_sessions.py):
@@ -25,9 +25,9 @@ sessions.csv supplies each day's date/weekday via SessionStart.
 
 USAGE
 -----
-    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
-    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail\output"
-    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\MACDFlip\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\Target\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\Trail\output"
+    python analyze_DOW.py "C:\Git\CandleStateSessionAnalysis\data\LVL\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -62,7 +62,7 @@ def daily_results(positions: pd.DataFrame, sessions: pd.DataFrame) -> pd.DataFra
     """
     Collapses positions down to one row per trading day (SourceFile):
     DailyNet = sum of that day's RealizedGain across all its positions,
-    DayWin = whether that day finished net-positive.
+    DayWin = whether that day finished breakeven or better (DailyNet >= 0).
 
     Weekday and calendar date come from sessions.csv's SessionStart, which
     is the session's own timestamp -- more reliable than inferring the
@@ -78,7 +78,8 @@ def daily_results(positions: pd.DataFrame, sessions: pd.DataFrame) -> pd.DataFra
     daily["DailyNet"] = daily["DailyNet"].fillna(0)
 
     daily["Weekday"] = _parse_local_datetime(daily["SessionStart"]).dt.day_name()
-    daily["DayWin"] = daily["DailyNet"] > 0
+    # Breakeven counts as a win, so a no-trade ($0) day isn't a Loss.
+    daily["DayWin"] = daily["DailyNet"] >= 0
     return daily
 
 
@@ -86,21 +87,21 @@ def day_of_week_summary(daily: pd.DataFrame) -> pd.DataFrame:
     """
     For each weekday: Count of trading days, Net (sum of that weekday's
     daily P&L), Win/Loss day counts, and win rate (share of days that
-    finished net-positive).
+    finished breakeven or better).
 
     "Target Hit" isn't included yet -- that data doesn't exist in the
     session files until it's added to the session header. Once it is, add
     a TargetHit column here the same way Win/Loss are computed below.
     """
     grouped = daily.groupby("Weekday").agg(
-        Positions=("DailyNet", "size"),
+        Days=("DailyNet", "size"),
         Net=("DailyNet", "sum"),
         Wins=("DayWin", "sum"),
         Losses=("DayWin", lambda s: (~s).sum()),
         TargetHit=("TargetHit", "sum"),
     )
-    grouped["WinPct"] = grouped["Wins"] / grouped["Positions"]
-    grouped["TargetHitPct"] = grouped["TargetHit"] / grouped["Positions"]
+    grouped["WinPct"] = grouped["Wins"] / grouped["Days"]
+    grouped["TargetHitPct"] = grouped["TargetHit"] / grouped["Days"]
 
     # Reorder Mon-Fri regardless of which weekdays have data.
     grouped = grouped.reindex([d for d in WEEKDAY_ORDER if d in grouped.index])
@@ -292,7 +293,7 @@ def format_for_display(dow: pd.DataFrame) -> pd.DataFrame:
     display["WinPct"] = display["WinPct"].map(lambda v: f"{v:.0%}")
     display["TargetHitPct"] = display["TargetHitPct"].map(lambda v: f"{v:.0%}")
     
-    column_order = ["Positions", "Wins", "Losses", "WinPct", "TargetHit", "TargetHitPct", "Net"]
+    column_order = ["Days", "Wins", "Losses", "WinPct", "TargetHit", "TargetHitPct", "Net"]
     return display[column_order]
     
 

@@ -33,8 +33,8 @@ $ conversion: --capital * 0.98 deployed, so $/bps = capital*0.98/10000
 
 USAGE:
   python C:\\Git\\CandleStateSessionAnalysis\\src\\analyze_opening_drive.py `
-      --signals C:\\Git\\CandleStateSessionAnalysis\\data\\MACDFlip\\output\\trade_signals.csv `
-      --out     C:\\Git\\CandleStateSessionAnalysis\\data\\MACDFlip\\output\\opening_drive.csv `
+      --signals C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output\\trade_signals.csv `
+      --out     C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output\\opening_drive.csv `
       --target-bps 51 --max-hold 15 --detail-n 2 --detail-trail 15
 
 NOTES:

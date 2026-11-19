@@ -23,8 +23,8 @@ capture that the current -2x pairing forgoes.
 
 USAGE:
   python analyze_trend_supply.py `
-      --signals C:\\Git\\CandleStateSessionAnalysis\\data\\MACDFlip\\output\\trade_signals.csv `
-      --out     C:\\Git\\CandleStateSessionAnalysis\\data\\MACDFlip\\output\\trend_supply.csv `
+      --signals C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output\\trade_signals.csv `
+      --out     C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output\\trend_supply.csv `
       --window 15 --target-bps 51 --mae-cap-bps 30
 
 NOTES:
@@ -208,7 +208,7 @@ def main():
           " supply-by-regime table.")
 
 
-    sup = pd.read_csv(r"C:\Git\CandleStateSessionAnalysis\data\MACDFlip\output\trend_supply.csv",
+    sup = pd.read_csv(r"C:\Git\CandleStateSessionAnalysis\data\Target\output\trend_supply.csv",
                   parse_dates=["Date"])
 
     # 1. The original mystery: was Jun-Aug 2025 a supply famine or a detection failure?
@@ -216,7 +216,7 @@ def main():
             [["LongWindows", "ShortWindows", "TwoSided"]].mean().round(2))
 
     # 2. The mechanism: does two-sidedness explain the P/L?
-    ses = pd.read_csv(r"C:\Git\CandleStateSessionAnalysis\data\MACDFlip\output\sessions.csv",
+    ses = pd.read_csv(r"C:\Git\CandleStateSessionAnalysis\data\Target\output\sessions.csv",
                     parse_dates=["SessionStart"])
     ses["Date"] = ses["SessionStart"].dt.normalize()
     j = sup.merge(ses[["Date", "DayGain", "TargetHit"]], on="Date")

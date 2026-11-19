@@ -59,7 +59,8 @@ VERSION = "1.0"
 INPUT_DIR = Path(r"C:\Git\CandleStateSessionAnalysis\data\polygon")
 OUTPUT_DIR = Path(r"C:\Git\CandleStateSessionAnalysis\data\polygon")
 
-SYMBOLS = ["UPRO", "SDS", "TQQQ", "QID"]
+# SYMBOLS = ["UPRO", "SDS", "TQQQ", "QID"]
+SYMBOLS = ["SPY", "QQQ"]
 
 INPUT_PATTERN = "candles_{symbol}_1min.csv"
 OUTPUT_PATTERN = "candles_{symbol}_{agg}min.csv"

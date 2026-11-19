@@ -71,7 +71,8 @@ VERSION = "1.1"
 INPUT_DIR = Path(r"C:\Git\CandleStateSessionAnalysis\data\polygon")
 OUTPUT_ROOT = Path(r"C:\Git\CandleStateSessionAnalysis\data\polygon\candles")
 
-SYMBOLS = ["UPRO", "SDS", "TQQQ", "QID"]
+# SYMBOLS = ["UPRO", "SDS", "TQQQ", "QID"]
+SYMBOLS = ["SPY", "QQQ"]
 
 INPUT_PATTERN = "candles_{symbol}_2min.csv"
 FILE_PATTERN = "candleSet_{symbol}_{chunk}.json"

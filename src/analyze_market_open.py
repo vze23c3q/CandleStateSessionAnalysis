@@ -20,11 +20,11 @@ is first reached (same definition as analyze_trend_supply.py v1.1.x).
 
 USAGE:
   python analyze_market_open.py `
-      --signals   C:\\Git\\CandleStateSessionAnalysis\\data\\MACDFlip\\output\\trade_signals.csv `
+      --signals   C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output\\trade_signals.csv `
       --spy       C:\\Git\\CandleStateSessionAnalysis\\data\\analytics_SPY.json `
       --qqq       C:\\Git\\CandleStateSessionAnalysis\\data\\analytics_QQQ.json `
-      --out       C:\\Git\\CandleStateSessionAnalysis\\data\\MACDFlip\\output\\market_open.csv `
-      --sessions  C:\\Git\\CandleStateSessionAnalysis\\data\\MACDFlip\\output\\sessions.csv `
+      --out       C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output\\market_open.csv `
+      --sessions  C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output\\sessions.csv `
       --window 15 --target-bps 51 --mae-cap-bps 30 --cutoff 11:00
 
 NOTES:

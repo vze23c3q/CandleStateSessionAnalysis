@@ -25,8 +25,8 @@ give a misleading number.
 
 USAGE
 -----
-    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output"
-    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\MACDTrail\output"
+    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\Target\output"
+    python analyze_stats.py "C:\Git\CandleStateSessionAnalysis\data\Trail\output"
 
 (pass the "output" folder that parse_sessions.py created)
 """
@@ -99,7 +99,8 @@ def compute_stats(daily: pd.DataFrame, trading_capital: float) -> dict:
     total = daily["DailyNet"].sum()
     average = daily["DailyNet"].mean()
     std_dev = daily["DailyNet"].std()
-    max_loss = daily["DailyNet"].min()
+    # a "loss" only when a day (or the running total) went below zero; all-green data reports $0, not the smallest win
+    max_loss = min(daily["DailyNet"].min(), 0) if len(daily) else float("nan")
 
     trading_days = len(daily)
     if trading_days == 0 or trading_capital == 0:
@@ -118,7 +119,7 @@ def compute_stats(daily: pd.DataFrame, trading_capital: float) -> dict:
     average_win = winning_days.mean() if len(winning_days) else float("nan")
     average_loss = losing_days.mean() if len(losing_days) else float("nan")
     
-    minCumulativeNet = daily["CumulativeNet"].min()  
+    minCumulativeNet = min(daily["CumulativeNet"].min(), 0) if len(daily) else float("nan")
     maxDrawDown = daily["Drawdown"].min()  # most negative drawdown 
 
     return {
@@ -149,7 +150,7 @@ def monthly_results(daily: pd.DataFrame) -> pd.DataFrame:
     
     summary = monthly.groupby("Month").agg(
         Days=("DailyNet", "count"),
-        MaxLoss=("DailyNet", "min"),
+        MaxLoss=("DailyNet", lambda s: min(s.min(), 0)),
         TargetHit=("TargetHit", "sum"),
         Net=("DailyNet", "sum"),
     ).reset_index()
@@ -167,6 +168,8 @@ def format_for_display(stats: dict) -> pd.Series:
     for anything downstream.
     """
     def fmt_dollars(v):
+        if pd.isna(v):
+            return "-"   # e.g. Average Loss with no losing days
         return f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
 
     return pd.Series({
@@ -193,6 +196,8 @@ def format_for_monthly_display(monthly: pd.DataFrame) -> pd.DataFrame:
     full precision for anything downstream.
     """
     def fmt_dollars(v):
+        if pd.isna(v):
+            return "-"   # e.g. Average Loss with no losing days
         return f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"
 
     display = monthly.copy()

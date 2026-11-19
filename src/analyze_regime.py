@@ -35,7 +35,7 @@ Conventions:
 
 USAGE (PowerShell - note backtick line continuation, no trailing spaces after it):
   python analyze_regime.py `
-      --sessions   C:\Git\CandleStateSessionAnalysis\data\MACDTarget\output\sessions.csv `
+      --sessions   C:\Git\CandleStateSessionAnalysis\data\Target\output\sessions.csv `
       --analytics  C:\Git\CandleStateSessionAnalysis\data\analytics_SPY.json `
       --fear-greed C:\Git\CandleStateSessionAnalysis\data\fear_greed.csv `
       --eval-start 2026-07-01

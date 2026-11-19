@@ -13,7 +13,7 @@ Outputs:
 VERSION: 1.0.0
 
 USAGE:
-    python plot_equity_curve.py "C:\\Git\\CandleStateSessionAnalysis\\data\\MACDTarget\\output"
+    python plot_equity_curve.py "C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output"
 """
 
 from pathlib import Path

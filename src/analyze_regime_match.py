@@ -7,7 +7,7 @@ Purpose:
     persistence rather than single-day snapshots. Computes open-time-knowable
     regime features from the SwingState SPY analytics export (daily candles)
     plus Fear & Greed history, joins them to per-strategy daily DayGain
-    (MACDTarget / MACDTrail / MACDFlip), and tests whether regime buckets
+    (Target / Trail / LVL), and tests whether regime buckets
     separate strategy performance - including against the Trail-minus-Flip
     daily spread, a direct measurement of trend-vs-chop that the shared buy
     logic makes possible.
@@ -90,7 +90,7 @@ VERSION = "1.0"
 # ------------------------------------------------------------------------- #
 
 BASE_DIR = Path(r"C:\Git\CandleStateSessionAnalysis\data")
-STRATEGIES = ["MACDTarget", "MACDTrail", "MACDFlip"]
+STRATEGIES = ["Target", "Trail", "LVL"]
 
 ANALYTICS_JSON = Path(r"C:\Git\CandleStateSessionAnalysis\data\analytics_SPY.json")
 FEAR_GREED_CSV = Path(r"C:\Git\CandleStateSessionAnalysis\data\fear_greed.csv")
@@ -102,7 +102,7 @@ GAIN_COL_CANDIDATES = ["DayGain", "DayGainLoss", "RealizedPL", "daygain"]
 
 # Spread pair: SpreadTrendChop = TREND_STRATEGY - CHOP_STRATEGY per day.
 # Positive = the day paid the runner exit; negative = the whipsaw cap paid.
-TREND_STRATEGY = "MACDTrail"
+TREND_STRATEGY = "Trail"
 CHOP_STRATEGY = "MACDFlip"
 
 TRAIL_WINDOW = 5    # days for trailing candle-character means

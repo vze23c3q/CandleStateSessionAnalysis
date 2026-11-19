@@ -8,7 +8,7 @@ symbol contributions can be compared directly.
 
 VERSION: 1.0.0
 
-USAGE:python plot_equity_curve_by_symbol.py "C:\\Git\\CandleStateSessionAnalysis\\data\\MACDTarget\\output"
+USAGE:python plot_equity_curve_by_symbol.py "C:\\Git\\CandleStateSessionAnalysis\\data\\Target\\output"
     
 """
 

@@ -70,10 +70,11 @@ VERSION = "1.0"
 
 API_KEY = os.environ.get("POLYGON_API_KEY", "x4flepjiLfR5HOkEXUm8cjXKinw7lgMJ")
 
-SYMBOLS = ["UPRO", "SDS", "TQQQ", "QID"]
+# SYMBOLS = ["UPRO", "SDS", "TQQQ", "QID"]
+SYMBOLS = ["SPY", "QQQ"]
 
-START_DATE = "2026-10-06"
-END_DATE = "2026-10-14"
+START_DATE = "2026-11-05"
+END_DATE = "2026-11-09"
 
 MULTIPLIER = 1          # bar size in TIMESPAN units (1 = 1-minute bars)
 TIMESPAN = "minute"
